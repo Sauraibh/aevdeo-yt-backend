@@ -1,4 +1,3 @@
-
 import yt_dlp
 import re
 
@@ -27,11 +26,9 @@ class VideoDownloader:
             'merge_output_format': 'mp4',
             'extract_flat': False,
         }
-
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(self.url, download=False)
-                return info
+                return ydl.extract_info(self.url, download=False)
         except Exception as e:
-            print(f"Error fetching video info: {str(e)}")
+            print(f"Error: {e}")
             return None
