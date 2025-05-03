@@ -1,3 +1,5 @@
+
+import os
 from flask import Flask, jsonify, request
 from downloader.downloader import VideoDownloader
 from utils.helpers import validate_url
@@ -34,12 +36,12 @@ def download_video():
             'thumbnail': video_info.get('thumbnail', ''),
             'formats': [
                 {
-                    'quality': format.get('format_note', 'unknown'),
-                    'url': format.get('url'),
-                    'filesize': format.get('filesize', 0),
-                    'ext': format.get('ext', 'mp4')
-                } for format in video_info.get('formats', [])
-                if format.get('url') and format.get('vcodec') != 'none'
+                    'quality': fmt.get('format_note', 'unknown'),
+                    'url': fmt.get('url'),
+                    'filesize': fmt.get('filesize', 0),
+                    'ext': fmt.get('ext', 'mp4')
+                } for fmt in video_info.get('formats', [])
+                if fmt.get('url') and fmt.get('vcodec') != 'none'
             ]
         }
         return jsonify(response), 200
@@ -48,4 +50,5 @@ def download_video():
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port)
