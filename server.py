@@ -1,53 +1,42 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import subprocess
-import uuid
-import os
+import yt_dlp
 
 app = Flask(__name__)
-CORS(app)  # <-- This line is what enables CORS
+CORS(app)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "AEVDEO yt-dlp backend is live!"
+    return "Aevdeo Backend is Live!"
 
-@app.route("/fetch", methods=["POST"])
-def fetch():
-    data = request.json
-    url = data.get("url")
+@app.route("/api/download", methods=["POST"])
+def download_video():
+    data = request.get_json()
+    url = data.get("videoUrl")
+
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'force_generic_extractor': False,
+        'extract_flat': False,
+    }
+
     try:
-        temp_id = str(uuid.uuid4())
-        output_path = f"/tmp/{temp_id}.%(ext)s"
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            results = []
 
-        cmd = [
-            "yt-dlp",
-            "--skip-download",
-            "--print", "title",
-            "--print", "thumbnail",
-            "--print", "url",
-            "-o", output_path,
-            url
-        ]
+            for f in formats:
+                if f.get("url") and f.get("format_note") and f.get("ext") == "mp4":
+                    results.append({
+                        "url": f["url"],
+                        "quality": f["format_note"]
+                    })
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        output = result.stdout.strip().split("\n")
-
-        if len(output) < 3:
-            return jsonify({"error": "Could not extract video info"}), 500
-
-        return jsonify({
-            "title": output[0],
-            "thumbnail": output[1],
-            "downloadLinks": [
-                {"url": output[2], "quality": "default"}
-            ]
-        })
-
+            return jsonify({"downloadLinks": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 3000)))
