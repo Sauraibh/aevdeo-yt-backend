@@ -1,6 +1,6 @@
- const express = require("express");
+
+const express = require("express");
 const cors = require("cors");
-const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,42 +8,35 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("AEVDEO Real Instagram Backend is live!");
-});
-
 app.post("/fetch", async (req, res) => {
   const { url } = req.body;
 
-  if (!url || !url.includes("instagram.com")) {
-    return res.status(400).json({ error: "Invalid or missing Instagram URL." });
+  if (!url) {
+    return res.status(400).json({ error: "URL is required." });
   }
 
-  try {
-    const apiResponse = await fetch(`https://api.vevioz.com/api/button/instagram?url=${encodeURIComponent(url)}`);
-    const html = await apiResponse.text();
+  let platform = "unknown";
 
-    const videoMatch = html.match(/href="(https:\\/\\/[^"]+\\.mp4)"/);
-    const thumbMatch = html.match(/<img src="(https:\\/\\/[^"]+)" alt=/);
+  if (url.includes("instagram.com")) platform = "Instagram";
+  else if (url.includes("facebook.com") || url.includes("fb.watch")) platform = "Facebook";
+  else if (url.includes("x.com") || url.includes("twitter.com")) platform = "X";
+  else if (url.includes("pinterest.com")) platform = "Pinterest";
+  else if (url.includes("threads.net")) platform = "Threads";
 
-    if (!videoMatch) {
-      return res.json({ message: "Could not extract video. Try another link." });
+  const downloadLinks = [
+    {
+      url: "https://example.com/video_720p.mp4",
+      quality: "720p",
+      platform
+    },
+    {
+      url: "https://example.com/video_480p.mp4",
+      quality: "480p",
+      platform
     }
+  ];
 
-    res.json({
-      platform: "Instagram",
-      thumbnail: thumbMatch ? thumbMatch[1] : null,
-      downloadLinks: [
-        {
-          url: videoMatch[1],
-          quality: "Default"
-        }
-      ]
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch video data." });
-  }
+  return res.json({ platform, downloadLinks });
 });
 
 app.listen(PORT, () => {
